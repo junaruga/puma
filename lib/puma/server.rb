@@ -111,6 +111,7 @@ module Puma
         begin
           socket.setsockopt(6, 3, 1) if socket.kind_of? TCPSocket
         rescue IOError, SystemCallError
+          Thread.current.purge_interrupt_queue if Thread.current.respond_to? :purge_interrupt_queue
         end
       end
 
@@ -118,6 +119,7 @@ module Puma
         begin
           socket.setsockopt(6, 3, 0) if socket.kind_of? TCPSocket
         rescue IOError, SystemCallError
+          Thread.current.purge_interrupt_queue if Thread.current.respond_to? :purge_interrupt_queue
         end
       end
 
@@ -128,6 +130,7 @@ module Puma
         begin
           tcp_info = socket.getsockopt(Socket::SOL_TCP, Socket::TCP_INFO)
         rescue IOError, SystemCallError
+          Thread.current.purge_interrupt_queue if Thread.current.respond_to? :purge_interrupt_queue
           @precheck_closing = false
           false
         else
@@ -491,6 +494,7 @@ module Puma
         begin
           client.close if close_socket
         rescue IOError, SystemCallError
+          Thread.current.purge_interrupt_queue if Thread.current.respond_to? :purge_interrupt_queue
           # Already closed
         rescue StandardError => e
           @events.unknown_error self, e, "Client"
@@ -901,6 +905,14 @@ module Puma
         @notify << STOP_COMMAND
       rescue IOError
         # The server, in another thread, is shutting down
+        Thread.current.purge_interrupt_queue if Thread.current.respond_to? :purge_interrupt_queue
+      rescue RuntimeError => e
+        # Temporary workaround for https://bugs.ruby-lang.org/issues/13239
+        if e.message.include?('IOError')
+          Thread.current.purge_interrupt_queue if Thread.current.respond_to? :purge_interrupt_queue
+        else
+          raise e
+        end
       end
 
       @thread.join if @thread && sync
