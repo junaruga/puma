@@ -164,6 +164,8 @@ class TestIntegrationCluster < TestIntegration
 
     threads.each(&:join)
 
+    puts "[DEBUG] term_closes_listeners replies: #{replies}"
+
     failures  = replies.count(:failure)
     successes = replies.count(:success)
     resets    = replies.count(:reset)
@@ -230,6 +232,7 @@ class TestIntegrationCluster < TestIntegration
 
     # get pids from replies, generate uniq array
     qty_pids = replies.map { |body| body[/\d+\z/] }.uniq.compact.length
+    puts "[DEBUG] usr1_all_respond replies: #{replies}"
 
     msg = "#{responses} responses, #{qty_pids} uniq pids"
 
